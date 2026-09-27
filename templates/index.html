@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>J.A.R.V.I.S. Core Interface</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --primary: #00e5ff;
+      --primary-dim: rgba(0, 229, 255, 0.4);
+      --bg-dark: #000408;
+      --font-hud: 'Orbitron', sans-serif;
+      --font-mono: 'Share Tech Mono', monospace;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--primary);
+      font-family: var(--font-mono);
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      position: relative;
+    }
+
+    /* ── Subtle grid & vignette ── */
+    body::before {
+      content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+      background: radial-gradient(circle at center, transparent 30%, #000000 90%),
+                  linear-gradient(rgba(0,229,255,0.02) 1px, transparent 1px),
+                  linear-gradient(90deg, rgba(0,229,255,0.02) 1px, transparent 1px);
+      background-size: 100% 100%, 40px 40px, 40px 40px;
+    }
+
+    /* ── Top Bar ── */
+    .top-bar {
+      position: absolute; top: 30px; left: 50%; transform: translateX(-50%);
+      width: 90%; max-width: 1400px;
+      display: flex; justify-content: space-between; z-index: 10;
+      letter-spacing: 2px; font-size: 0.7rem; color: var(--primary-dim);
+    }
+    .top-bar .title { font-family: var(--font-hud); font-weight: 900; font-size: 1.2rem; color: var(--primary); letter-spacing: 6px; text-shadow: 0 0 10px var(--primary); }
+
+    /* ── Layout Container ── */
+    .layout {
+      position: relative; z-index: 10;
+      width: 100%; height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 5%;
+    }
+
+    /* ── Left Chat Box ── */
+    .chat-panel {
+      width: 350px;
+      height: 70vh;
+      background: rgba(0, 20, 30, 0.6);
+      border: 1px solid var(--primary-dim);
+      border-radius: 8px;
+      backdrop-filter: blur(10px);
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 0 30px rgba(0, 229, 255, 0.05);
+    }
+    .chat-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(0, 229, 255, 0.2);
+      font-family: var(--font-hud);
+      font-size: 0.8rem;
+      letter-spacing: 3px;
+      color: var(--primary);
+    }
+    .chat-log {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--primary-dim) transparent;
+    }
+    .chat-log::-webkit-scrollbar { width: 4px; }
+    .chat-log::-webkit-scrollbar-thumb { background: var(--primary-dim); border-radius: 4px; }
+    
+    .msg-wrapper {
+      display: flex;
+      flex-direction: column;
+      animation: fadeUp 0.3s ease forwards;
+    }
+    .msg-label {
+      font-size: 0.6rem;
+      color: var(--primary-dim);
+      margin-bottom: 2px;
+      letter-spacing: 1px;
+    }
+    .msg-content {
+      font-size: 0.85rem;
+      line-height: 1.4;
+      color: #fff;
+    }
+    .msg-wrapper.jarvis .msg-label { color: var(--primary); }
+    .msg-wrapper.jarvis .msg-content { color: var(--primary); text-shadow: 0 0 8px rgba(0,229,255,0.4); }
+
+    /* ── The JARVIS Core Orb (Center) ── */
+    .core-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .core-container {
+      position: relative;
+      width: 400px; height: 400px;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .orb-ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 1px solid transparent;
+    }
+    .ring-1 {
+      width: 380px; height: 380px;
+      border-top: 1px solid var(--primary-dim); border-bottom: 1px solid var(--primary-dim);
+      animation: spin 16s linear infinite;
+    }
+    .ring-2 {
+      width: 340px; height: 340px;
+      border-left: 2px solid var(--primary); border-right: 2px solid rgba(0,229,255,0.1);
+      animation: spinReverse 12s linear infinite;
+    }
+    .ring-3 {
+      width: 300px; height: 300px;
+      border: 1px dashed var(--primary-dim);
+      animation: spin 20s linear infinite;
+    }
+    
+    .core-btn {
+      position: relative;
+      width: 180px; height: 180px;
+      border-radius: 50%;
+      background: radial-gradient(circle at center, rgba(0,229,255,0.1), rgba(0,40,60,0.8));
+      border: 2px solid var(--primary-dim);
+      cursor: pointer; outline: none;
+      box-shadow: 0 0 40px rgba(0,229,255,0.2), inset 0 0 40px rgba(0,229,255,0.1);
+      transition: all 0.3s ease;
+      display: flex; align-items: center; justify-content: center;
+      z-index: 5;
+    }
+    
+    .core-btn:hover {
+      box-shadow: 0 0 60px rgba(0,229,255,0.5), inset 0 0 60px rgba(0,229,255,0.3);
+      border-color: var(--primary);
+      transform: scale(1.05);
+    }
+    
+    /* Center waveform / visualizer */
+    .core-viz {
+      display: flex; gap: 4px; height: 40px; align-items: center; justify-content: center;
+    }
+    .viz-bar {
+      width: 4px; height: 10px; border-radius: 2px;
+      background: var(--primary);
+      box-shadow: 0 0 10px var(--primary);
+      transition: height 0.08s ease;
+    }
+
+    /* Listening pulse state */
+    .core-btn.listening {
+      animation: listenPulse 1.5s infinite;
+      border-color: #fff;
+      box-shadow: 0 0 80px rgba(0,229,255,0.8), inset 0 0 60px rgba(0,229,255,0.6);
+    }
+    .core-btn.listening .viz-bar { background: #fff; box-shadow: 0 0 15px #fff; }
+
+    /* Sonar waves when listening */
+    .sonar {
+      position: absolute; width: 180px; height: 180px;
+      border-radius: 50%; border: 1px solid var(--primary);
+      opacity: 0; pointer-events: none;
+    }
+    .core-btn.listening ~ .sonar-1 { animation: sonarOut 2s ease-out infinite; }
+    .core-btn.listening ~ .sonar-2 { animation: sonarOut 2s ease-out 0.6s infinite; }
+    .core-btn.listening ~ .sonar-3 { animation: sonarOut 2s ease-out 1.2s infinite; }
+
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+    @keyframes spinReverse { 100% { transform: rotate(-360deg); } }
+    @keyframes listenPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+    @keyframes sonarOut {
+      0% { transform: scale(1); opacity: 0.8; }
+      100% { transform: scale(3.5); opacity: 0; }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Subtitle Status ── */
+    .status-text {
+      margin-top: 40px;
+      text-align: center;
+      font-size: 0.75rem; letter-spacing: 4px; color: var(--primary-dim); z-index: 10;
+    }
+    .status-text span { color: var(--primary); animation: blink 2s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    /* Right Placeholder to balance layout */
+    .right-placeholder {
+      width: 350px;
+    }
+
+    /* Hide input but keep it accessible for keyboard */
+    #hiddenInput { position: absolute; opacity: 0; pointer-events: none; }
+  </style>
+</head>
+<body>
+
+  <!-- Background Canvas for Matrix/Stars effect -->
+  <canvas id="bgCanvas" style="position:absolute; inset:0; z-index:0;"></canvas>
+
+  <div class="top-bar">
+    <div class="sys-info">UPTIME: <span id="uptime">00:00:00</span></div>
+    <div class="title">J.A.R.V.I.S.</div>
+    <div class="sys-info" id="clock">00:00:00</div>
+  </div>
+
+  <div class="layout">
+    
+    <!-- Left Chat Panel -->
+    <div class="chat-panel">
+      <div class="chat-header">COMMUNICATION LOG</div>
+      <div class="chat-log" id="chatLog">
+        <!-- Messages will appear here -->
+      </div>
+    </div>
+
+    <!-- Center Core -->
+    <div class="core-wrapper">
+      <div class="core-container">
+        <div class="orb-ring ring-1"></div>
+        <div class="orb-ring ring-2"></div>
+        <div class="orb-ring ring-3"></div>
+        
+        <button class="core-btn" id="coreBtn" title="Click to activate voice">
+          <div class="core-viz" id="vizBox">
+            <div class="viz-bar"></div><div class="viz-bar"></div><div class="viz-bar"></div>
+            <div class="viz-bar"></div>
+            <div class="viz-bar"></div><div class="viz-bar"></div><div class="viz-bar"></div>
+          </div>
+        </button>
+        <div class="sonar sonar-1"></div>
+        <div class="sonar sonar-2"></div>
+        <div class="sonar sonar-3"></div>
+      </div>
+      <div class="status-text" id="statusText"><span>&bull;</span> TAP CORE OR SAY "JARVIS" TO WAKE</div>
+    </div>
+
+    <!-- Right Side (Empty for symmetry) -->
+    <div class="right-placeholder"></div>
+
+  </div>
+
+  <input type="text" id="hiddenInput" autocomplete="off" />
+
+<script>
+  // ── Particle Background ──
+  const canvas = document.getElementById('bgCanvas');
+  const ctx = canvas.getContext('2d');
+  let W, H;
+  const particles = [];
+  function initCanvas() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+    for(let i=0; i<150; i++) {
+      particles.push({
+        x: Math.random()*W, y: Math.random()*H,
+        z: Math.random()*2,
+        v: (Math.random()*0.5 + 0.1)
+      });
+    }
+  }
+  initCanvas(); window.addEventListener('resize', initCanvas);
+  function draw() {
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle = 'rgba(0, 229, 255, 0.4)';
+    particles.forEach(p => {
+      p.y -= p.v * (1 + p.z);
+      if(p.y < 0) { p.y = H; p.x = Math.random()*W; }
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.z, 0, Math.PI*2);
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+
+  // ── Clocks ──
+  const clockEl = document.getElementById('clock');
+  const uptimeEl = document.getElementById('uptime');
+  let bootTime = Date.now();
+  setInterval(() => {
+    const now = new Date();
+    clockEl.textContent = now.toLocaleTimeString('en-US', {hour12:false});
+    const up = Math.floor((Date.now() - bootTime)/1000);
+    const h = String(Math.floor(up/3600)).padStart(2,'0');
+    const m = String(Math.floor((up%3600)/60)).padStart(2,'0');
+    const s = String(up%60).padStart(2,'0');
+    uptimeEl.textContent = `${h}:${m}:${s}`;
+  }, 1000);
+
+  // ── Visualizer ──
+  const vizBars = document.querySelectorAll('.viz-bar');
+  let isSpeaking = false;
+  let isListening = false;
+  let isThinking = false;
+  
+  function animateViz() {
+    vizBars.forEach((bar, i) => {
+      let h = 10;
+      if (isSpeaking) {
+        h = 15 + Math.random() * 40;
+      } else if (isListening) {
+        h = 10 + Math.random() * 15;
+      } else if (isThinking) {
+        const time = Date.now() / 200;
+        h = 10 + Math.sin(time + i) * 15;
+      }
+      bar.style.height = `${Math.max(4, h)}px`;
+    });
+    requestAnimationFrame(animateViz);
+  }
+  animateViz();
+
+  // ── Chat Box ──
+  const chatLog = document.getElementById('chatLog');
+  function addChatMessage(text, isUser = false) {
+    const msg = document.createElement('div');
+    msg.className = `msg-wrapper ${isUser ? 'user' : 'jarvis'}`;
+    
+    const label = document.createElement('div');
+    label.className = 'msg-label';
+    label.textContent = isUser ? 'SIR' : 'J.A.R.V.I.S.';
+
+    const content = document.createElement('div');
+    content.className = 'msg-content';
+    content.textContent = text;
+
+    msg.appendChild(label);
+    msg.appendChild(content);
+    chatLog.appendChild(msg);
+    chatLog.scrollTop = chatLog.scrollHeight;
+  }
+
+  // ── Speech Synthesis ──
+  function speak(text) {
+    return new Promise(resolve => {
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(text);
+      const voices = window.speechSynthesis.getVoices();
+      const chosen = voices.find(v => v.lang === 'en-GB' && /male|man|david|daniel/i.test(v.name)) 
+                  || voices.find(v => v.lang === 'en-GB') 
+                  || voices.find(v => v.lang.startsWith('en') && /male/i.test(v.name));
+      if (chosen) utter.voice = chosen;
+      utter.rate = 0.95; utter.pitch = 0.8;
+      utter.onstart = () => { isSpeaking = true; };
+      utter.onend = () => { isSpeaking = false; resolve(); };
+      utter.onerror = () => { isSpeaking = false; resolve(); };
+      window.speechSynthesis.speak(utter);
+    });
+  }
+  if (window.speechSynthesis.onvoiceschanged !== undefined) window.speechSynthesis.onvoiceschanged = () => {};
+
+  // ── Agent Communication ──
+  const coreBtn = document.getElementById('coreBtn');
+  const statusText = document.getElementById('statusText');
+  const hiddenInput = document.getElementById('hiddenInput');
+
+  function setStatus(state) {
+    if(state === 'listening') {
+      isListening = true; isThinking = false;
+      coreBtn.classList.add('listening');
+      statusText.innerHTML = `<span>&bull;</span> LISTENING...`;
+    } else if(state === 'thinking') {
+      isListening = false; isThinking = true;
+      coreBtn.classList.remove('listening');
+      statusText.innerHTML = `<span>&bull;</span> PROCESSING...`;
+    } else {
+      isListening = false; isThinking = false;
+      coreBtn.classList.remove('listening');
+      statusText.innerHTML = `<span>&bull;</span> TAP CORE OR SAY "JARVIS" TO WAKE`;
+      startWakeWord();
+    }
+  }
+
+  async function sendCommand(text) {
+    if (!text.trim()) return;
+    addChatMessage(text, true);
+    setStatus('thinking');
+    
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({text})
+      });
+      const data = await res.json();
+      if (data.reply) {
+        addChatMessage(data.reply, false);
+        await speak(data.reply);
+      }
+    } catch(err) {
+      addChatMessage("CONNECTION ERROR", false);
+    }
+    setStatus('idle');
+  }
+
+  // ── Speech Recognition ──
+  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let activeRecog = null;
+  let wakeRecog = null;
+
+  function startListening() {
+    if(!SpeechRec || isThinking) return;
+    if(wakeRecog) { try{wakeRecog.abort();}catch(e){} }
+    if(activeRecog) { try{activeRecog.abort();}catch(e){} }
+
+    activeRecog = new SpeechRec();
+    activeRecog.lang = 'en-US';
+    activeRecog.onstart = () => setStatus('listening');
+    activeRecog.onresult = (e) => {
+      const text = e.results[0][0].transcript;
+      setStatus('thinking');
+      sendCommand(text);
+    };
+    activeRecog.onerror = () => setStatus('idle');
+    activeRecog.onend = () => { if(isListening) setStatus('idle'); };
+    activeRecog.start();
+  }
+
+  // Improved Wake Word Logic
+  function startWakeWord() {
+    if(!SpeechRec || isThinking || isListening) return;
+    if(wakeRecog) { try{wakeRecog.abort();}catch(e){} }
+
+    wakeRecog = new SpeechRec();
+    wakeRecog.lang = 'en-US';
+    wakeRecog.continuous = true;
+    wakeRecog.interimResults = false;
+    
+    wakeRecog.onresult = (e) => {
+      for (let i = e.resultIndex; i < e.results.length; ++i) {
+        if (e.results[i].isFinal) {
+          const text = e.results[i][0].transcript.trim().toLowerCase();
+          // Detect wake word variations
+          const wakeWords = ['jarvis', 'travis', 'chavez', 'service', 'garvis', 'tarvis'];
+          const hasWakeWord = wakeWords.some(w => text.includes(w));
+          
+          if (hasWakeWord) {
+             wakeRecog.abort(); // Stop wake word listener
+             // If they ONLY said jarvis, we beep and start active listening
+             if (text === 'jarvis' || text === 'hey jarvis') {
+                 startListening();
+             } else {
+                 // They said a full sentence like "Jarvis open the browser"
+                 sendCommand(text);
+             }
+             return;
+          }
+        }
+      }
+    };
+    
+    wakeRecog.onend = () => { 
+      // Restart continuous listening if not processing/talking
+      if(!isThinking && !isListening) {
+        setTimeout(startWakeWord, 300); 
+      }
+    };
+    
+    try { wakeRecog.start(); } catch(e) {}
+  }
+
+  // Init
+  coreBtn.addEventListener('click', () => {
+    if(!isThinking) startListening();
+  });
+
+  // Allow keyboard input via hidden field for testing
+  document.addEventListener('keydown', () => { if(!isListening) hiddenInput.focus(); });
+  hiddenInput.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter') {
+      const val = hiddenInput.value;
+      hiddenInput.value = '';
+      if(val) {
+        if(wakeRecog) try{wakeRecog.abort();}catch(e){}
+        sendCommand(val);
+      }
+    }
+  });
+
+  // Boot check
+  fetch('/api/status').then(r => r.json()).then(data => {
+    if(data.status === 'online') {
+      const bootMsg = "System online. Good day, sir.";
+      addChatMessage(bootMsg, false);
+      speak(bootMsg);
+      startWakeWord();
+    }
+  });
+</script>
+</body>
+</html>
